@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>专注时间 Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.5.0/dist/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f2f1ed;
+      --surface: #ffffff;
+      --surface2: #f8f7f4;
+      --border: #e5e2db;
+      --border2: #d4d0c8;
+      --text-primary: #181714;
+      --text-secondary: #625f58;
+      --text-muted: #9e9b94;
+      --accent: #1e4d7a;
+      --accent-mid: #3a7cbd;
+      --accent-light: #e4eef7;
+      --green: #1f6b42;
+      --green-bg: #e6f3ec;
+      --green-border: #b4d9c2;
+      --amber: #7a4f10;
+      --amber-bg: #fdf0e0;
+      --amber-border: #e8ceac;
+      --red: #7a2020;
+      --red-bg: #faebeb;
+      --red-border: #e8b4b4;
+      --btn-w: 168px;
+      --btn-h: 44px;
+    }
+    body {
+      font-family: 'Noto Sans SC', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 28px 20px;
+    }
+    .container {
+      display: flex;
+      max-width: 1080px;
+      width: 100%;
+      background: var(--surface);
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* ═══ LEFT ═══ */
+    .left {
+      width: 320px;
+      flex-shrink: 0;
+      padding: 32px 28px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .app-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    
+    /* 极简音乐控制区 */
+    .music-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+    .music-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .music-btn:hover {
+      color: var(--green);
+    }
+    .music-btn.playing {
+      color: var(--green);
+    }
+    .music-btn i {
+      font-size: 16px;
+    }
+    .volume-slider {
+      width: 50px;
+      height: 3px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--border2);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+    }
+
+    .streak-badge {
+      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 600;
+      color: var(--amber);
+      background: var(--amber-bg);
+      border: 1px solid var(--amber-border);
+      padding: 3px 9px; border-radius: 20px;
+    }
+    .streak-badge i { font-size: 13px; }
+
+    /* ring */
+    .timer-ring {
+      position: relative; width: 196px; height: 196px;
+      margin-bottom: 32px;
+    }
+    .timer-ring svg {
+      position: absolute; top: 0; left: 0;
+      transform: rotate(-90deg);
+    }
+    .ring-bg { stroke: var(--border); }
+    .ring-fill {
+      stroke: var(--accent-mid); stroke-linecap: round;
+      transition: stroke-dashoffset 0.9s linear, stroke 0.4s;
+    }
+    .timer-inner {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+    }
+    .time {
+      font-family: 'DM Mono', monospace;
+      font-size: 48px; font-weight: 500;
+      color: var(--text-primary); letter-spacing: 1px; line-height: 1;
+    }
+    .phase-label {
+      font-size: 11px; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text-muted);
+    }
+
+    /* 固定尺寸容器：防止按钮切换引发抖动 */
+    .controls { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      width: var(--btn-w); 
+      min-height: 160px; 
+    }
+    .btn {
+      display: flex; align-items: center; justify-content: center;
+      gap: 7px; width: var(--btn-w); height: var(--btn-h);
+      font-family: 'Noto Sans SC', sans-serif;
+      font-size: 14px; font-weight: 500;
+      border: none; border-radius: 11px; cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn i { font-size: 16px; flex-shrink: 0; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-paused  { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+    .btn-save    { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+    .btn-neutral { background: var(--surface2); color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-divider { width: 100%; height: 1px; background: var(--border); margin: 2px 0; }
+
+    /* ═══ RIGHT ═══ */
+    .right {
+      flex: 1; background: var(--surface2);
+      padding: 28px 26px;
+      display: flex; flex-direction: column; gap: 20px;
+      min-width: 0;
+    }
+    .top-row { display: flex; gap: 12px; }
+    .goal-card {
+      flex: 1; background: var(--surface);
+      padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border);
+    }
+    .card-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 600; color: var(--text-primary);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .card-title i { font-size: 14px; color: var(--accent-mid); }
+    .card-action {
+      font-size: 11px; color: var(--accent-mid); cursor: pointer;
+      background: none; border: none; font-family: inherit;
+      display: flex; align-items: center; gap: 3px;
+    }
+    .card-action:hover { text-decoration: underline; }
+    .progress-bar {
+      height: 5px; background: var(--border);
+      border-radius: 3px; overflow: hidden; margin-bottom: 8px;
+    }
+    .progress-fill {
+      height: 100%; background: var(--accent-mid);
+      width: 0%; transition: width 0.6s ease; border-radius: 3px;
+    }
+    .goal-meta { display: flex; justify-content: space-between; align-items: baseline; }
+    .goal-status { font-size: 11px; color: var(--text-muted); }
+    .total-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 18px; font-weight: 500; color: var(--accent);
+    }
+    .streak-card {
+      width: 110px; flex-shrink: 0;
+      background: var(--surface); padding: 14px 16px;
+      border-radius: 12px; border: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+    }
+    .streak-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 32px; font-weight: 500; color: var(--amber); line-height: 1;
+    }
+    .streak-sub { font-size: 11px; color: var(--text-muted); text-align: center; }
+    .section-label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .week-list { display: flex; flex-direction: column; gap: 4px; }
+    .day {
+      display: flex; align-items: center;
+      padding: 6px 10px; border-radius: 8px;
+      font-size: 13px; color: var(--text-secondary);
+    }
+    .day.today { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+    .day-name  { min-width: 28px; font-size: 13px; }
+    .day-bar   { flex: 1; height: 3px; background: var(--border); border-radius: 2px; margin: 0 10px; overflow: hidden; }
+    .day.today .day-bar { background: #c8dff0; }
+    .day-bar-fill { height: 100%; background: var(--accent-mid); border-radius: 2px; transition: width 0.4s; }
+    .day.today .day-bar-fill { background: var(--accent); }
+    .day-time  { font-family: 'DM Mono', monospace; font-size: 12px; min-width: 52px; text-align: right; }
+    
+    .chart-wrap { height: 160px; }
+    .export-row { display: flex; justify-content: flex-end; }
+    .export-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; font-size: 12px; font-weight: 500;
+      font-family: 'Noto Sans SC', sans-serif;
+      background: var(--surface); color: var(--text-secondary);
+      border: 1px solid var(--border); border-radius: 8px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .export-btn:hover { border-color: var(--border2); color: var(--text-primary); }
+    .export-btn i { font-size: 14px; }
+
+    /* toast */
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: var(--text-primary); color: var(--surface);
+      padding: 10px 20px; border-radius: 10px;
+      font-size: 13px; font-weight: 500;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s; z-index: 999;
+    }
+    .toast.show { opacity: 1; }
+
+    /* 音符微动特效 */
+    .eq-mini {
+      display: inline-flex; align-items: flex-end; gap: 2px; height: 10px; margin-left: 2px;
+    }
+    .eq-mini span {
+      width: 1.5px; background: currentColor; border-radius: 1px;
+      animation: eq 0.6s ease-in-out infinite alternate;
+    }
+    .eq-mini span:nth-child(1) { height: 3px; animation-delay: 0s; }
+    .eq-mini span:nth-child(2) { height: 8px; animation-delay: 0.15s; }
+    .eq-mini span:nth-child(3) { height: 5px; animation-delay: 0.3s; }
+    @keyframes eq { to { height: 2px; } }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="left">
+    <div class="app-header">
+      <div class="music-container">
+        <button id="musicToggleBtn" class="music-btn" onclick="toggleMusic()" title="背景音乐">
+          <i id="musicIcon" class="ti ti-music"></i>
+          <span id="musicEq" class="eq-mini" style="display: none;">
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+        <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.05" value="0.5" oninput="changeVolume(this.value)" title="调节音量">
+      </div>
+      <div class="streak-badge">
+        <i class="ti ti-flame"></i>
+        <span id="headerStreakNum">0</span> 天
+      </div>
+    </div>
+
+    <div class="timer-ring">
+      <svg width="196" height="196" viewBox="0 0 196 196">
+        <circle class="ring-bg" cx="98" cy="98" r="86" fill="none" stroke-width="5"/>
+        <circle class="ring-fill" id="ringFill" cx="98" cy="98" r="86"
+          fill="none" stroke-width="5"
+          stroke-dasharray="540.4" stroke-dashoffset="540.4"/>
+      </svg>
+      <div class="timer-inner">
+        <div class="time" id="timer">00:00</div>
+        <div class="phase-label" id="phaseLabel">准备开始</div>
+      </div>
+    </div>
+
+    <!-- 绝对固定结构的控制区，杜绝任何闪烁和空间跳跃 -->
+    <div class="controls">
+      <button id="toggleBtn" class="btn btn-primary" onclick="toggleTimer()">
+        <i class="ti ti-player-play" id="toggleIcon"></i>
+        <span id="toggleText">开始计时</span>
+      </button>
+      <button id="saveBtn" class="btn btn-save" onclick="saveAndStop()">
+        <i class="ti ti-device-floppy"></i><span>完成并保存</span>
+      </button>
+      <div class="btn-divider"></div>
+      <button class="btn btn-neutral" onclick="manualAdd()">
+        <i class="ti ti-clock-plus"></i><span>手动补时</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="top-row">
+      <div class="goal-card">
+        <div class="card-header">
+          <span class="card-title"><i class="ti ti-target"></i>每周目标</span>
+          <button class="card-action" onclick="setWeeklyGoal()">
+            <i class="ti ti-pencil" style="font-size:11px"></i>设置
+          </button>
+        </div>
+        <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+        <div class="goal-meta">
+          <span class="goal-status" id="goalStatus">尚未设置目标</span>
+          <span class="total-num" id="totalDisplay">0h</span>
+        </div>
+      </div>
+      <div class="streak-card">
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-sub">连续<br>专注天</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">每日统计</div>
+      <div class="week-list" id="weekList"></div>
+    </div>
+
+    <div>
+      <div class="section-label">本周趋势</div>
+      <div class="chart-wrap"><canvas id="focusChart"></canvas></div>
+    </div>
+
+    <div class="export-row">
+      <button class="export-btn" onclick="exportCSV()">
+        <i class="ti ti-download"></i>导出 CSV
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   TIMER STATE
+══════════════════════════════════════════ */
+let startTime   = null;   
+let accumulated = 0;      
+let running     = false;
+let ivl         = null;
+let chart       = null;
+
+const CIRC = 540.4;
+const KEY_DATA   = 'focus_data_v3';
+const KEY_GOAL   = 'focus_weekly_goal';
+const KEY_STREAK = 'focus_streak_v2';
+
+function todayKey() { return new Date().toISOString().split('T')[0]; }
+function loadData() { return JSON.parse(localStorage.getItem(KEY_DATA) || '{}'); }
+function saveData(d) { localStorage.setItem(KEY_DATA, JSON.stringify(d)); }
+
+function fmtShort(min) {
+  if (min === 0) return '0m';
+  if (min < 60) return min + 'm';
+  const h = Math.floor(min/60), m = min%60;
+  return m ? h + 'h ' + m + 'm' : h + 'h';
+}
+function fmtCN(min) {
+  if (min === 0) return '0 分钟';
+  if (min < 60) return min + ' 分钟';
+  const h = Math.floor(min/60), m = min%60;
+  return m ? h + ' 小时 ' + m + ' 分' : h + ' 小时';
+}
+
+/* ══════════════════════════════════════════
+   AUDIO AUDIO CONTROL
+══════════════════════════════════════════ */
+const audio = new Audio('bgm.mp3');
+audio.loop = true;
+audio.volume = 0.5; 
+let isMusicPlaying = false;
+
+function toggleMusic() {
+  if (isMusicPlaying) {
+    audio.pause();
+    isMusicPlaying = false;
+    updateMusicUI(false);
+  } else {
+    audio.play().then(() => {
+      isMusicPlaying = true;
+      updateMusicUI(true);
+    }).catch(err => {
+      showToast('⚠️ 未能加载同级目录下的 bgm.mp3 文件');
+    });
+  }
+}
+
+function changeVolume(val) {
+  audio.volume = val;
+}
+
+function updateMusicUI(playing) {
+  const btn = document.getElementById('musicToggleBtn');
+  const icon = document.getElementById('musicIcon');
+  const eq = document.getElementById('musicEq');
+  
+  if (playing) {
+    btn.classList.add('playing');
+    icon.className = 'ti ti-music-off';
+    eq.style.display = 'inline-flex';
+  } else {
+    btn.classList.remove('playing');
+    icon.className = 'ti ti-music';
+    eq.style.display = 'none';
+  }
+}
+
+/* ══════════════════════════════════════════
+   ELAPSED TIME
+══════════════════════════════════════════ */
+function getElapsed() {
+  let e = accumulated;
+  if (running && startTime !== null) {
+    e += Math.floor((Date.now() - startTime) / 1000);
+  }
+  return e;
+}
+
+/* ══════════════════════════════════════════
+   TIMER CORE
+══════════════════════════════════════════ */
+function toggleTimer() {
+  if (!running) {
+    running = true;
+    startTime = Date.now();
+    document.getElementById('toggleBtn').className = 'btn btn-paused';
+    document.getElementById('toggleIcon').className = 'ti ti-player-pause';
+    document.getElementById('toggleText').textContent = '暂停计时';
+    document.getElementById('phaseLabel').textContent = '专注中…';
+    
+    ivl = setInterval(tick, 500);
+
+    if (!isMusicPlaying) {
+      audio.play().then(() => {
+        isMusicPlaying = true;
+        updateMusicUI(true);
+      }).catch(() => {}); 
+    }
+  } else {
+    running = false;
+    accumulated = getElapsed(); 
+    startTime = null;
+    clearInterval(ivl); ivl = null;
+    document.getElementById('toggleBtn').className = 'btn btn-primary';
+    document.getElementById('toggleIcon').className = 'ti ti-player-play';
+    document.getElementById('toggleText').textContent = '继续计时';
+    document.getElementById('phaseLabel').textContent = '已暂停';
+
+    if (isMusicPlaying) {
+      audio.pause();
+      isMusicPlaying = false;
+      updateMusicUI(false);
+    }
+  }
+}
+
+function tick() {
+  refreshDisplay(getElapsed());
+}
+
+function refreshDisplay(cur) {
+  // 圆环动画基于每小时循环一次（3600秒）
+  const pct = (cur % 3600) / 3600;
+  document.getElementById('ringFill').style.strokeDashoffset = CIRC * (1 - pct);
+
+  const m = Math.floor(cur / 60), s = cur % 60;
+  document.getElementById('timer').textContent =
+    String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function commitSeconds(secs) {
+  if (secs <= 0) return;
+  const data = loadData(), key = todayKey();
+  if (!data[key]) data[key] = { total: 0 };
+  data[key].total = (data[key].total || 0) + secs;
+  saveData(data);
+  updateStreak();
+}
+
+function saveAndStop() {
+  const cur = getElapsed();
+  if (cur <= 0) {
+    showToast('当前没有产生计时数据');
+    return;
+  }
+  commitSeconds(cur);
+  resetState();
+  render();
+  showToast('✅ 已保存 ' + fmtCN(Math.round(cur / 60)));
+}
+
+function resetState() {
+  running = false; startTime = null; accumulated = 0;
+  clearInterval(ivl); ivl = null;
+  document.getElementById('toggleBtn').className = 'btn btn-primary';
+  document.getElementById('toggleIcon').className = 'ti ti-player-play';
+  document.getElementById('toggleText').textContent = '开始计时';
+  document.getElementById('phaseLabel').textContent = '准备开始';
+
+  if (isMusicPlaying) {
+    audio.pause();
+    isMusicPlaying = false;
+    updateMusicUI(false);
+  }
+
+  document.getElementById('ringFill').style.strokeDashoffset = CIRC;
+  document.getElementById('timer').textContent = '00:00';
+}
+
+function manualAdd() {
+  const mins = prompt('请输入要增加的专注分钟数：', '30');
+  if (!mins || isNaN(mins) || parseInt(mins) <= 0) return;
+  commitSeconds(parseInt(mins) * 60);
+  render(); showToast('➕ 已补充 ' + mins + ' 分钟');
+}
+
+function setWeeklyGoal() {
+  const g = prompt('设置每周专注目标（小时）：', localStorage.getItem(KEY_GOAL) || '20');
+  if (!g || isNaN(g) || parseFloat(g) <= 0) return;
+  localStorage.setItem(KEY_GOAL, g); render();
+}
+
+/* ══════════════════════════════════════════
+   STREAK CONTINUITY
+══════════════════════════════════════════ */
+function updateStreak() {
+  const raw = localStorage.getItem(KEY_STREAK);
+  const s = raw ? JSON.parse(raw) : { lastDate: '', count: 0 };
+  const today = todayKey();
+  if (s.lastDate === today) return;
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  const yKey = yest.toISOString().split('T')[0];
+  s.count = (s.lastDate === yKey) ? s.count + 1 : 1;
+  s.lastDate = today;
+  localStorage.setItem(KEY_STREAK, JSON.stringify(s));
+}
+
+function getStreak() {
+  const raw = localStorage.getItem(KEY_STREAK);
+  if (!raw) return 0;
+  const s = JSON.parse(raw);
+  const today = todayKey();
+  const yest = new Date(); yest.setDate(yest.getDate() - 1);
+  const yKey = yest.toISOString().split('T')[0];
+  return (s.lastDate === today || s.lastDate === yKey) ? s.count : 0;
+}
+
+/* ══════════════════════════════════════════
+   RENDER UI & DATA
+══════════════════════════════════════════ */
+function render() {
+  const data = loadData();
+  const dayNames = ['周一','周二','周三','周四','周五','周六','周日'];
+  const today = new Date();
+  const todayIdx = (today.getDay() + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - todayIdx);
+
+  let totalSec = 0, dayMins = [], dayDataArr = [];
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const key = d.toISOString().split('T')[0];
+    const rec = data[key] || { total: 0 };
+    const min = Math.floor(rec.total / 60);
+    dayMins.push(min);
+    totalSec += rec.total;
+    dayDataArr.push({ min });
+  }
+  const maxMin = Math.max(...dayMins, 1);
+
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const { min } = dayDataArr[i];
+    const pct = Math.round((min / maxMin) * 100);
+    html += `<div class="day ${i===todayIdx?'today':''}">
+      <span class="day-name">${dayNames[i]}</span>
+      <div class="day-bar"><div class="day-bar-fill" style="width:${pct}%"></div></div>
+      <span class="day-time">${fmtShort(min)}</span>
+    </div>`;
+  }
+  document.getElementById('weekList').innerHTML = html;
+
+  const totalMin = Math.floor(totalSec / 60);
+  document.getElementById('totalDisplay').textContent = (totalMin/60).toFixed(1) + 'h';
+  const goalH = parseFloat(localStorage.getItem(KEY_GOAL) || '0');
+  if (goalH > 0) {
+    const pct = Math.min(Math.round((totalMin / (goalH * 60)) * 100), 100);
+    document.getElementById('goalStatus').textContent = `目标 ${goalH}h · 完成 ${pct}%`;
+    document.getElementById('progressFill').style.width = pct + '%';
+  } else {
+    document.getElementById('goalStatus').textContent = '尚未设置目标';
+    document.getElementById('progressFill').style.width = '0%';
+  }
+
+  const streak = getStreak();
+  document.getElementById('streakNum').textContent = streak;
+  document.getElementById('headerStreakNum').textContent = streak;
+
+  updateChart(dayNames, dayMins, todayIdx);
+}
+
+function updateChart(labels, data, todayIdx) {
+  const ctx = document.getElementById('focusChart');
+  const colors = data.map((_,i) => i===todayIdx ? '#1e4d7a' : '#b0ccdf');
+  if (chart) {
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].backgroundColor = colors;
+    chart.update(); return;
+  }
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 4, barThickness: 16 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ' ' + fmtCN(c.raw) } }
+      },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#eeece8' },
+          ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9e9b94', callback: v => v + 'm' } },
+        x: { grid: { display: false },
+          ticks: { font: { family: 'Noto Sans SC', size: 11 }, color: '#9e9b94' } }
+      }
+    }
+  });
+}
+
+/* ══════════════════════════════════════════
+   EXPORT DATA
+══════════════════════════════════════════ */
+function exportCSV() {
+  const data = loadData();
+  const keys = Object.keys(data).sort();
+  if (!keys.length) { showToast('暂无数据可导出'); return; }
+  const rows = [['日期','总时长(分钟)']];
+  for (const k of keys) {
+    const rec = data[k];
+    const total = Math.floor((rec.total||0)/60);
+    rows.push([k, total]);
+  }
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'}));
+  a.download = '专注记录_' + todayKey() + '.csv';
+  a.click();
+  showToast('📊 CSV 已导出');
+}
+
+/* ══════════════════════════════════════════
+   TOAST NOTIFICATION
+══════════════════════════════════════════ */
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && running) { tick(); }
+});
+
+render();
+
+setInterval(() => {
+  const n = new Date();
+  if (n.getHours() === 0 && n.getMinutes() === 0) render();
+}, 60000);
+</script>
+</body>
+</html>

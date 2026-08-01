@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+  <meta charset="UTF-8">
+  <title>专注时间 Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #f8fafc, #e0f2fe);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      display: flex;
+      max-width: 1050px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .left {
+      flex: 1;
+      padding: 40px;
+      text-align: center;
+      border-right: 1px solid #e2e8f0;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 600;
+      color: #1e3a8a;
+      margin-bottom: 20px;
+    }
+
+    .time {
+      font-size: 82px;
+      font-weight: 700;
+      color: #2563eb;
+      letter-spacing: 4px;
+      margin: 20px 0 30px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .controls button {
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn.start {
+      background: #4ade80;
+      color: #166534;
+    }
+
+    .toggle-btn.pause {
+      background: #fbbf24;
+      color: #92400e;
+    }
+
+    .save-btn {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .add-btn {
+      background: #f1f5f9;
+      color: #475569;
+    }
+
+    .reset {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .right {
+      width: 400px;
+      background: #f8fafc;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .goal-card {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+    }
+
+    .goal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .goal-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1e40af;
+    }
+
+    .set-goal {
+      font-size: 12px;
+      color: #3b82f6;
+      cursor: pointer;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #3b82f6;
+      width: 0%;
+      transition: width 0.5s;
+    }
+
+    .week-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .day {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .day.today {
+      background: #dbeafe;
+      font-weight: 600;
+    }
+
+    .chart-container {
+      height: 180px;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="left">
+      <div class="title">专注计时器</div>
+      <div class="time" id="timer">00:00</div>
+      <div class="controls">
+        <button id="toggleBtn" class="toggle-btn start" onclick="toggleTimer()">开始专注</button>
+        <button id="saveBtn" class="save-btn" onclick="saveAndStop()" style="display:none;">完成并保存</button>
+        <button class="add-btn" onclick="manualAdd()">手动补时</button>
+        <button class="reset" onclick="resetDay()">重置今日</button>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="goal-card">
+        <div class="goal-header">
+          <span class="goal-title">每周目标</span>
+          <span class="set-goal" onclick="setWeeklyGoal()">设置目标</span>
+        </div>
+        <div id="goalStatus" style="font-size: 13px; color: #64748b;">已完成 0%</div>
+        <div class="progress-bar">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+        <div id="totalDisplay" style="font-size: 15px; font-weight: 700; color: #1e3a8a; margin-top: 5px;">0 小时</div>
+      </div>
+
+      <div>
+        <div style="font-size: 15px; font-weight: 600; color: #1e40af; margin-bottom: 10px;">每日统计</div>
+        <div class="week-list" id="weekList"></div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="focusChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let startTime = null, accumulated = 0, running = false, interval = null, chart = null;
+    const KEY = "focus_week_data_v2";
+    const GOAL_KEY = "focus_weekly_goal";
+
+    function todayKey() { return new Date().toISOString().split('T')[0]; }
+    function load() { return JSON.parse(localStorage.getItem(KEY) || "{}"); }
+    function save(data) { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+    function formatDisplayTime(minutes) {
+      if (minutes < 60) return `${minutes} 分钟`;
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return m === 0 ? `${h} 小时` : `${h} 小时 ${m} 分`;
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById("toggleBtn");
+      const sBtn = document.getElementById("saveBtn");
+      if (!running) {
+        running = true; startTime = Date.now();
+        btn.textContent = "暂停"; btn.className = "toggle-btn pause";
+        sBtn.style.display = "inline-block";
+        interval = setInterval(updateTimerDisplay, 200);
+      } else {
+        running = false; clearInterval(interval);
+        accumulated += Math.floor((Date.now() - startTime) / 1000);
+        startTime = null;
+        btn.textContent = "继续"; btn.className = "toggle-btn start";
+      }
+    }
+
+    function updateTimerDisplay() {
+      let current = accumulated;
+      if (running && startTime) current += Math.floor((Date.now() - startTime) / 1000);
+      let m = Math.floor(current / 60), s = current % 60;
+      document.getElementById("timer").innerText = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function saveAndStop() {
+      if (running) accumulated += Math.floor((Date.now() - startTime) / 1000);
+      if (accumulated > 0) {
+        let data = load(), key = todayKey();
+        data[key] = (data[key] || 0) + accumulated;
+        save(data);
+      }
+      resetState();
+      render();
+    }
+
+    function manualAdd() {
+      const mins = prompt("请输入要增加的专注分钟数：", "50");
+      if (mins && !isNaN(mins)) {
+        let data = load(), key = todayKey();
+        data[key] = (data[key] || 0) + parseInt(mins) * 60;
+        save(data);
+        render();
+      }
+    }
+
+    function setWeeklyGoal() {
+      const goal = prompt("设置每周专注目标（小时）：", "20");
+      if (goal && !isNaN(goal)) {
+        localStorage.setItem(GOAL_KEY, goal);
+        render();
+      }
+    }
+
+    function resetState() {
+      accumulated = 0; startTime = null; running = false;
+      clearInterval(interval);
+      document.getElementById("toggleBtn").textContent = "开始专注";
+      document.getElementById("toggleBtn").className = "toggle-btn start";
+      document.getElementById("saveBtn").style.display = "none";
+      updateTimerDisplay();
+    }
+
+    function resetDay() {
+      if (confirm("确定重置今日数据吗？")) {
+        let data = load(); data[todayKey()] = 0; save(data);
+        resetState(); render();
+      }
+    }
+
+    function render() {
+      const data = load();
+      const dayNames = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+      let minutesArray = [], totalMin = 0, today = new Date(), todayIdx = (today.getDay() + 6) % 7;
+
+      // 计算本周一的日期
+      let monday = new Date(today);
+      monday.setDate(today.getDate() - todayIdx);
+
+      let html = "";
+      for (let i = 0; i < 7; i++) {
+        let d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        let key = d.toISOString().split('T')[0];
+        let min = Math.floor((data[key] || 0) / 60);
+        minutesArray.push(min);
+        totalMin += min;
+        html += `<div class="day ${i === todayIdx ? 'today' : ''}">
+          <span>${dayNames[i]}</span><span>${formatDisplayTime(min)}</span>
+        </div>`;
+      }
+      document.getElementById("weekList").innerHTML = html;
+      document.getElementById("totalDisplay").innerText = `本周累计：${formatDisplayTime(totalMin)}`;
+
+      // 目标进度
+      const goalHours = parseFloat(localStorage.getItem(GOAL_KEY) || "0");
+      if (goalHours > 0) {
+        const percent = Math.min(Math.round((totalMin / (goalHours * 60)) * 100), 100);
+        document.getElementById("goalStatus").innerText = `目标 ${goalHours} 小时 | 已完成 ${percent}%`;
+        document.getElementById("progressFill").style.width = percent + "%";
+      }
+
+      updateChart(dayNames, minutesArray);
+    }
+
+    function updateChart(labels, data) {
+      const ctx = document.getElementById('focusChart');
+      if (chart) {
+        chart.data.datasets[0].data = data;
+        chart.update();
+      } else {
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{ data, backgroundColor: '#60a5fa', borderRadius: 5, barThickness: 20 }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { display: false } } }
+          }
+        });
+      }
+    }
+
+    render();
+    setInterval(() => { if (new Date().getHours() === 5 && new Date().getMinutes() === 0) resetState(); render(); }, 60000);
+  </script>
+</body>
+
+</html>
