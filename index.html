@@ -651,7 +651,7 @@
                 <circle class="progress-bg" cx="120" cy="120" r="112" />
                 <circle class="progress-bar" cx="120" cy="120" r="112" />
             </svg>
-            <div class="timer">25:00</div>
+            <div class="timer">50:00</div>
         </div>
 
         <div class="controls">
@@ -692,15 +692,15 @@
             <div class="settings-grid">
                 <div class="settings-item">
                     <label class="settings-label">工作时长 (分钟)</label>
-                    <input type="number" id="work-time" class="settings-input" min="1" max="180" value="25">
+                    <input type="number" id="work-time" class="settings-input" min="1" max="180" value="50">
                 </div>
                 <div class="settings-item">
                     <label class="settings-label">短休息时长 (分钟)</label>
-                    <input type="number" id="short-break" class="settings-input" min="1" max="60" value="5">
+                    <input type="number" id="short-break" class="settings-input" min="1" max="60" value="10">
                 </div>
                 <div class="settings-item">
                     <label class="settings-label">长休息时长 (分钟)</label>
-                    <input type="number" id="long-break" class="settings-input" min="1" max="60" value="15">
+                    <input type="number" id="long-break" class="settings-input" min="1" max="60" value="30">
                 </div>
                 <div class="settings-item">
                     <label class="settings-label">长休息间隔 (番茄数)</label>
@@ -710,7 +710,7 @@
             <div class="music-controls">
                 <div class="volume-container">
                     <span class="volume-label">背景音乐音量</span>
-                    <input type="range" id="volume-slider" min="0" max="100" value="35" class="volume-slider">
+                    <input type="range" id="volume-slider" min="0" max="100" value="25" class="volume-slider">
                 </div>
             </div>
             <div class="settings-buttons">
@@ -722,11 +722,8 @@
         </div>
     </div>
 
-    <audio id="sound-bell" preload="auto">
-        <source src="Summer.mp3" type="audio/mp3">
-    </audio>
+    <audio id="sound-bell" preload="auto"></audio>
     <audio id="background-music" loop preload="auto">
-        <source src="bgm.mp3" type="audio/mp3">
     </audio>
 
     <script>
@@ -763,6 +760,12 @@
             let stats = loadStats();
             let isRunning = false;
             let isWorking = true;
+            const audioCacheConfig = {
+                database: 'pomodoro-audio-cache',
+                store: 'audio',
+                backgroundMusicKey: 'background-music-v1',
+                backgroundMusicUrl: 'bgm.mp3'
+            };
 
             const worker = new Worker('pomodoroWorker.js');
 
@@ -856,11 +859,19 @@
 
             function playSound(wasWorking) {
                 const wasPlaying = !backgroundMusic.paused;
+                const soundFile = wasWorking ? 'Summer.mp3' : 'rest1.mp3';
+                const resumeBackgroundMusic = () => {
+                    if (wasPlaying && backgroundMusic.paused) {
+                        backgroundMusic.play().catch(err => console.error('恢复背景音乐失败:', err));
+                    }
+                };
                 if (wasPlaying) backgroundMusic.pause();
+                bell.src = soundFile;
                 bell.currentTime = 0;
+                bell.loop = false;
+                bell.onended = resumeBackgroundMusic;
                 bell.play().then(() => {
-                    console.log('铃声播放成功');
-                    if (wasPlaying) backgroundMusic.play().catch(err => console.error('恢复背景音乐失败:', err));
+                    console.log(`${soundFile} 播放成功`);
                     if (Notification.permission === "granted") {
                         new Notification("番茄时钟提醒", {
                             body: wasWorking ? "工作时间结束！请开始休息。" : "休息时间结束！请开始工作。",
@@ -882,7 +893,7 @@
                     console.error('铃声播放失败:', e);
                     soundStatus.textContent = "铃声播放失败";
                     soundStatus.className = "sound-status error";
-                    if (wasPlaying) backgroundMusic.play().catch(err => console.error('恢复背景音乐失败:', err));
+                    resumeBackgroundMusic();
                 });
             }
 
@@ -937,7 +948,7 @@
             }
 
             function loadSettings() {
-                const defaultSettings = { workTime: 25, shortBreak: 5, longBreak: 15, pomodorosPerCycle: 4 };
+                const defaultSettings = { workTime: 50, shortBreak: 10, longBreak: 30, pomodorosPerCycle: 4 };
                 const savedSettings = localStorage.getItem('pomodoroSettings');
                 return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
             }
@@ -981,7 +992,7 @@
             }
 
             testSoundButton.addEventListener('click', debounce(() => {
-                playSound();
+                playSound(true);
                 soundStatus.textContent = "铃声测试成功";
                 soundStatus.className = "sound-status success";
                 setTimeout(() => {
@@ -1053,12 +1064,102 @@
                     volumeSlider.value = savedVolume;
                     backgroundMusic.volume = savedVolume / 100;
                 } else {
-                    backgroundMusic.volume = 0.35;
-                    volumeSlider.value = 35;
+                    backgroundMusic.volume = 0.25;
+                    volumeSlider.value = 25;
+                }
+            }
+
+            function openAudioCache() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(audioCacheConfig.database, 1);
+
+                    request.onupgradeneeded = () => {
+                        const database = request.result;
+                        if (!database.objectStoreNames.contains(audioCacheConfig.store)) {
+                            database.createObjectStore(audioCacheConfig.store);
+                        }
+                    };
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            function readCachedAudio(key) {
+                return openAudioCache().then(database => new Promise((resolve, reject) => {
+                    const transaction = database.transaction(audioCacheConfig.store, 'readonly');
+                    const request = transaction.objectStore(audioCacheConfig.store).get(key);
+
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                    transaction.oncomplete = () => database.close();
+                }));
+            }
+
+            function writeCachedAudio(key, blob) {
+                return openAudioCache().then(database => new Promise((resolve, reject) => {
+                    const transaction = database.transaction(audioCacheConfig.store, 'readwrite');
+                    transaction.objectStore(audioCacheConfig.store).put(blob, key);
+                    transaction.oncomplete = () => {
+                        database.close();
+                        resolve();
+                    };
+                    transaction.onerror = () => {
+                        database.close();
+                        reject(transaction.error);
+                    };
+                }));
+            }
+
+            function setBackgroundMusicSource(source) {
+                if (backgroundMusic.dataset.objectUrl) {
+                    URL.revokeObjectURL(backgroundMusic.dataset.objectUrl);
+                }
+
+                if (source instanceof Blob) {
+                    const objectUrl = URL.createObjectURL(source);
+                    backgroundMusic.dataset.objectUrl = objectUrl;
+                    backgroundMusic.src = objectUrl;
+                } else {
+                    delete backgroundMusic.dataset.objectUrl;
+                    backgroundMusic.src = source;
+                }
+                backgroundMusic.load();
+            }
+
+            async function loadBackgroundMusic() {
+                try {
+                    const cachedBlob = await readCachedAudio(audioCacheConfig.backgroundMusicKey);
+                    if (cachedBlob && cachedBlob.size > 0) {
+                        setBackgroundMusicSource(cachedBlob);
+                        return;
+                    }
+
+                    const response = await fetch(audioCacheConfig.backgroundMusicUrl, { cache: 'force-cache' });
+                    if (!response.ok && response.status !== 0) {
+                        throw new Error(`背景音乐请求失败：${response.status}`);
+                    }
+
+                    const blob = await response.blob();
+                    if (!blob.size) {
+                        throw new Error('背景音乐文件为空');
+                    }
+
+                    setBackgroundMusicSource(blob);
+                    await writeCachedAudio(audioCacheConfig.backgroundMusicKey, blob);
+                } catch (error) {
+                    console.warn('背景音乐本地缓存不可用，已回退到浏览器缓存：', error);
+                    setBackgroundMusicSource(audioCacheConfig.backgroundMusicUrl);
                 }
             }
 
             loadMusicSettings();
+            loadBackgroundMusic();
+
+            window.addEventListener('beforeunload', () => {
+                if (backgroundMusic.dataset.objectUrl) {
+                    URL.revokeObjectURL(backgroundMusic.dataset.objectUrl);
+                }
+            });
         });
     </script>
     <script>(function () { function c() { var b = a.contentDocument || a.contentWindow.document; if (b) { var d = b.createElement('script'); d.innerHTML = "window.__CF$cv$params={r:'936c6cc8b9b5e58e',t:'MTc0NTczNzAzOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);"; b.getElementsByTagName('head')[0].appendChild(d) } } if (document.body) { var a = document.createElement('iframe'); a.height = 1; a.width = 1; a.style.position = 'absolute'; a.style.top = 0; a.style.left = 0; a.style.border = 'none'; a.style.visibility = 'hidden'; document.body.appendChild(a); if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else { var e = document.onreadystatechange || function () { }; document.onreadystatechange = function (b) { e(b); 'loading' !== document.readyState && (document.onreadystatechange = e, c()) } } } })();</script>
