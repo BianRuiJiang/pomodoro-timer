@@ -723,7 +723,7 @@
     </div>
 
     <audio id="sound-bell" preload="auto"></audio>
-    <audio id="background-music" loop preload="auto">
+    <audio id="background-music" loop preload="metadata">
     </audio>
 
     <script>
@@ -1133,7 +1133,14 @@
                         setBackgroundMusicSource(cachedBlob);
                         return;
                     }
+                } catch (error) {
+                    console.warn('读取背景音乐本地缓存失败：', error);
+                }
 
+                // 首次访问先直接播放，避免等待完整文件缓存完成。
+                setBackgroundMusicSource(audioCacheConfig.backgroundMusicUrl);
+
+                try {
                     const response = await fetch(audioCacheConfig.backgroundMusicUrl, { cache: 'force-cache' });
                     if (!response.ok && response.status !== 0) {
                         throw new Error(`背景音乐请求失败：${response.status}`);
@@ -1144,11 +1151,9 @@
                         throw new Error('背景音乐文件为空');
                     }
 
-                    setBackgroundMusicSource(blob);
                     await writeCachedAudio(audioCacheConfig.backgroundMusicKey, blob);
                 } catch (error) {
-                    console.warn('背景音乐本地缓存不可用，已回退到浏览器缓存：', error);
-                    setBackgroundMusicSource(audioCacheConfig.backgroundMusicUrl);
+                    console.warn('背景音乐本地缓存失败，将继续使用浏览器缓存：', error);
                 }
             }
 
