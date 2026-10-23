@@ -13,6 +13,11 @@
             font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
         }
 
+        html {
+            min-height: 100%;
+            overflow-x: hidden;
+        }
+
         :root {
             /* 亮色模式变量 */
             --bg-color: #ffffff;
@@ -60,17 +65,24 @@
 
         body {
             min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
+            padding:
+                max(1rem, env(safe-area-inset-top))
+                max(1rem, env(safe-area-inset-right))
+                max(1rem, env(safe-area-inset-bottom))
+                max(1rem, env(safe-area-inset-left));
             background-color: var(--bg-color);
             color: var(--text-color);
+            overflow-x: hidden;
             transition: background-color 0.5s ease, color 0.5s ease;
         }
 
         body.no-scroll {
             overflow: hidden;
+            overscroll-behavior: none;
         }
 
         body.working {
@@ -106,9 +118,10 @@
         }
 
         .container {
-            width: 90%;
+            width: 100%;
             max-width: 500px;
             padding: 2rem;
+            margin-block: auto;
             background-color: var(--card-bg);
             border-radius: 16px;
             box-shadow: 0 6px 20px var(--shadow-color);
@@ -144,9 +157,9 @@
             justify-content: center;
             padding: 0.3rem;
             border-radius: 50%;
-            width: 2rem;
-            height: 2rem;
-            transition: all 0.3s;
+            width: 2.5rem;
+            height: 2.5rem;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .theme-toggle:hover {
@@ -168,9 +181,9 @@
             justify-content: center;
             padding: 0.3rem;
             border-radius: 50%;
-            width: 2rem;
-            height: 2rem;
-            transition: all 0.3s;
+            width: 2.5rem;
+            height: 2.5rem;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         .music-play-pause:hover {
@@ -232,8 +245,8 @@
         }
 
         .progress-container {
-            width: 240px;
-            height: 240px;
+            width: min(240px, 100%);
+            aspect-ratio: 1;
             margin: 0 auto;
             position: relative;
             display: flex;
@@ -243,10 +256,11 @@
 
         .progress-ring {
             position: absolute;
-            top: 0;
-            left: 0;
+            inset: 0;
+            width: 100%;
+            height: 100%;
             transform: rotate(-90deg);
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease;
         }
 
         .progress-ring circle {
@@ -293,6 +307,14 @@
             transition: all 0.2s ease;
             background-color: var(--btn-bg);
             color: var(--btn-text);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:focus-visible,
+        input:focus-visible {
+            outline: 3px solid var(--working-color);
+            outline-offset: 3px;
         }
 
         button:hover {
@@ -307,6 +329,7 @@
             background-color: var(--btn-bg);
             color: white;
             padding: 0.8rem 2rem;
+            min-width: 7.5rem;
         }
 
         .btn-cancel {
@@ -314,11 +337,18 @@
             border: none;
             color: var(--secondary-text);
             font-size: 1.5rem;
+            padding: 0;
             cursor: pointer;
             transition: all 0.2s ease;
             position: absolute;
             top: 1rem;
             right: 1rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
         }
 
         .btn-cancel:hover {
@@ -341,13 +371,15 @@
         }
 
         .stats {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             justify-content: center;
             gap: 1rem;
             margin-top: 1rem;
         }
 
         .stat-item {
+            min-width: 0;
             padding: 0.6rem 1.2rem;
             background-color: var(--stat-bg);
             border-radius: 10px;
@@ -369,15 +401,16 @@
 
         .settings-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
+            inset: 0;
+            width: 100%;
             height: 100vh;
+            height: 100dvh;
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 999;
             display: none;
             opacity: 0;
             transition: opacity 0.3s ease;
+            overscroll-behavior: none;
         }
 
         .settings-overlay.visible {
@@ -394,18 +427,19 @@
             transition: opacity 0.3s ease, transform 0.3s ease;
             z-index: 1000;
             background-color: var(--settings-bg);
-            padding: 3rem;
-            border-radius: 20px;
+            padding: 0;
+            border-radius: 16px;
             box-shadow: 0 8px 24px var(--shadow-color);
-            width: 66.66vw;
-            max-width: 800px;
-            height: 66.66vh;
-            max-height: 600px;
+            width: min(680px, calc(100% - 2rem));
+            max-height: calc(100vh - 2rem);
+            max-height: calc(100dvh - 2rem);
             display: none;
             flex-direction: column;
             align-items: center;
-            overflow-y: hidden;
-            /* 修改为 hidden，禁用滚动条 */
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
 
         .settings.visible {
@@ -414,17 +448,37 @@
             transform: translate(-50%, -50%) scale(1);
         }
 
+        .settings:focus {
+            outline: none;
+        }
+
+        .settings-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2.5rem 4rem 1.5rem;
+            background-color: var(--settings-bg);
+        }
+
         .settings-title {
             font-size: 1.8rem;
             font-weight: 600;
-            margin-bottom: 2rem;
             color: var(--text-color);
+        }
+
+        .settings-form {
+            width: 100%;
+            padding: 0 2.5rem 2.5rem;
         }
 
         .settings-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 2rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.25rem;
             width: 100%;
         }
 
@@ -435,7 +489,7 @@
         }
 
         .settings-label {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 500;
             color: var(--text-color);
             margin-bottom: 0.5rem;
@@ -447,8 +501,9 @@
             border: 1px solid var(--input-border);
             background-color: var(--card-bg);
             color: var(--text-color);
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             width: 100%;
+            min-width: 0;
             transition: border-color 0.3s, background-color 0.3s, color 0.3s;
         }
 
@@ -461,7 +516,7 @@
         .settings-buttons {
             display: flex;
             justify-content: center;
-            margin-top: 2.5rem;
+            margin-top: 1.5rem;
         }
 
         .settings-reset {
@@ -477,42 +532,6 @@
             padding: 0.8rem 2rem;
             font-size: 1.1rem;
             font-weight: 500;
-        }
-
-        .sound-controls {
-            margin-top: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .test-sound {
-            padding: 0.8rem 1.5rem;
-            background-color: var(--btn-bg);
-            color: var(--btn-text);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: background-color 0.3s;
-        }
-
-        .test-sound:hover {
-            opacity: 0.9;
-        }
-
-        .sound-status {
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--secondary-text);
-            height: 20px;
-        }
-
-        .sound-status.error {
-            color: #ff6b6b;
-        }
-
-        .sound-status.success {
-            color: var(--working-color);
         }
 
         .settings-toggle {
@@ -532,8 +551,8 @@
         }
 
         .music-controls {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
             border-top: 1px solid var(--header-border);
             display: flex;
             flex-direction: column;
@@ -558,6 +577,7 @@
 
         .volume-slider {
             flex-grow: 1;
+            min-width: 0;
             height: 6px;
             -webkit-appearance: none;
             background: var(--input-border);
@@ -581,29 +601,70 @@
         }
 
         @media (max-width: 600px) {
+            body {
+                padding:
+                    max(0.75rem, env(safe-area-inset-top))
+                    max(0.75rem, env(safe-area-inset-right))
+                    max(0.75rem, env(safe-area-inset-bottom))
+                    max(0.75rem, env(safe-area-inset-left));
+            }
+
             .container {
-                padding: 1.5rem;
+                padding: 1.25rem;
             }
 
             .timer {
-                font-size: 3.5rem;
+                font-size: 3.25rem;
+                margin: 1.25rem 0;
             }
 
             .progress-container {
-                width: 200px;
-                height: 200px;
+                width: min(216px, 100%);
             }
 
             h1 {
                 font-size: 1.5rem;
             }
 
+            .header {
+                margin-bottom: 1.25rem;
+            }
+
+            .controls {
+                margin: 1.25rem 0;
+            }
+
+            .btn-primary {
+                flex: 1;
+                min-width: 0;
+                padding-inline: 1rem;
+            }
+
+            .stats {
+                gap: 0.5rem;
+            }
+
+            .stat-item {
+                padding: 0.6rem 0.4rem;
+            }
+
             .settings {
-                padding: 2rem;
+                width: calc(100% - 1.5rem);
+                max-height: calc(100dvh - 1.5rem);
+                padding: 0;
+            }
+
+            .settings-header {
+                padding: 2.75rem 3.75rem 1.25rem;
+            }
+
+            .settings-form {
+                padding: 0 1.25rem 1.5rem;
             }
 
             .settings-grid {
                 grid-template-columns: 1fr;
+                gap: 1rem;
             }
 
             .settings-title {
@@ -620,14 +681,58 @@
                 width: 100%;
             }
         }
+
+        @media (max-width: 360px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .timer {
+                font-size: 3rem;
+            }
+
+            .progress-container {
+                width: min(192px, 100%);
+            }
+
+            .stats {
+                gap: 0.35rem;
+            }
+
+            .stat-label {
+                font-size: 0.75rem;
+            }
+
+            .settings {
+                width: calc(100% - 1rem);
+                max-height: calc(100dvh - 1rem);
+                padding: 0;
+            }
+
+            .settings-form {
+                padding-inline: 1rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 
 <body class="working">
-    <div class="settings-overlay"></div>
+    <div class="settings-overlay" aria-hidden="true"></div>
     <div class="container">
         <div class="header">
-            <button id="music-play-pause" class="music-play-pause" title="播放/暂停背景音乐">
+            <button type="button" id="music-play-pause" class="music-play-pause" title="播放/暂停背景音乐"
+                aria-label="播放或暂停背景音乐">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                     <path
                         d="M6 13c0 1.105-1.12 2-2.5 2S1 14.105 1 13c0-1.104 1.12-2 2.5-2s2.5.896 2.5 2zm9-2c0 1.105-1.12 2-2.5 2s-2.5-.895-2.5-2 1.12-2 2.5-2 2.5.895 2.5 2z" />
@@ -635,7 +740,7 @@
                     <path d="M5 2.905a1 1 0 0 1 .9-.995l8-.8a1 1 0 0 1 1.1.995V3L5 4V2.905z" />
                 </svg>
             </button>
-            <button id="theme-toggle" class="theme-toggle" title="切换暗黑模式">
+            <button type="button" id="theme-toggle" class="theme-toggle" title="切换暗黑模式" aria-label="切换明暗主题">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"
                     id="theme-icon">
                     <path
@@ -647,7 +752,7 @@
         </div>
 
         <div class="progress-container">
-            <svg class="progress-ring" width="240" height="240">
+            <svg class="progress-ring" viewBox="0 0 240 240" aria-hidden="true">
                 <circle class="progress-bg" cx="120" cy="120" r="112" />
                 <circle class="progress-bar" cx="120" cy="120" r="112" />
             </svg>
@@ -655,8 +760,8 @@
         </div>
 
         <div class="controls">
-            <button id="btn-start" class="btn-primary">开始</button>
-            <button id="btn-reset" class="btn-primary">重置</button>
+            <button type="button" id="btn-start" class="btn-primary">开始</button>
+            <button type="button" id="btn-reset" class="btn-primary">重置</button>
         </div>
 
         <div class="stats">
@@ -674,56 +779,60 @@
             </div>
         </div>
 
-        <div class="sound-controls">
-            <button id="btn-test-sound" class="test-sound">测试铃声</button>
-            <div id="sound-status" class="sound-status"></div>
-        </div>
+        <button type="button" id="settings-toggle" class="settings-toggle" aria-haspopup="dialog">设置</button>
 
-        <button id="settings-toggle" class="settings-toggle">设置</button>
-
-        <div class="settings">
-            <button id="btn-cancel-settings" class="btn-cancel">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
-                    <path
-                        d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
-                </svg>
-            </button>
-            <div class="settings-title">设置</div>
-            <div class="settings-grid">
-                <div class="settings-item">
-                    <label class="settings-label">工作时长 (分钟)</label>
-                    <input type="number" id="work-time" class="settings-input" min="1" max="180" value="50">
-                </div>
-                <div class="settings-item">
-                    <label class="settings-label">短休息时长 (分钟)</label>
-                    <input type="number" id="short-break" class="settings-input" min="1" max="60" value="10">
-                </div>
-                <div class="settings-item">
-                    <label class="settings-label">长休息时长 (分钟)</label>
-                    <input type="number" id="long-break" class="settings-input" min="1" max="60" value="30">
-                </div>
-                <div class="settings-item">
-                    <label class="settings-label">长休息间隔 (番茄数)</label>
-                    <input type="number" id="pomodoros-per-cycle" class="settings-input" min="1" max="10" value="4">
-                </div>
+        <div class="settings" role="dialog" aria-modal="true" aria-labelledby="settings-title" aria-hidden="true"
+            tabindex="-1">
+            <div class="settings-header">
+                <div id="settings-title" class="settings-title">设置</div>
+                <button type="button" id="btn-cancel-settings" class="btn-cancel" aria-label="关闭设置">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </button>
             </div>
-            <div class="music-controls">
-                <div class="volume-container">
-                    <span class="volume-label">背景音乐音量</span>
-                    <input type="range" id="volume-slider" min="0" max="100" value="25" class="volume-slider">
+            <form id="settings-form" class="settings-form">
+                <div class="settings-grid">
+                    <div class="settings-item">
+                        <label class="settings-label" for="work-time">工作时长（分钟）</label>
+                        <input type="number" id="work-time" class="settings-input" min="1" max="180" value="50"
+                            inputmode="numeric">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label" for="short-break">短休息时长（分钟）</label>
+                        <input type="number" id="short-break" class="settings-input" min="1" max="60" value="10"
+                            inputmode="numeric">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label" for="long-break">长休息时长（分钟）</label>
+                        <input type="number" id="long-break" class="settings-input" min="1" max="60" value="30"
+                            inputmode="numeric">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-label" for="pomodoros-per-cycle">长休息间隔（番茄数）</label>
+                        <input type="number" id="pomodoros-per-cycle" class="settings-input" min="1" max="10"
+                            value="4" inputmode="numeric">
+                    </div>
                 </div>
-            </div>
-            <div class="settings-buttons">
-                <button id="btn-save-settings" class="btn-save">保存</button>
-            </div>
-            <div class="settings-reset">
-                <button id="btn-reset-stats" class="btn-reset-stats">重置数据</button>
-            </div>
+                <div class="music-controls">
+                    <div class="volume-container">
+                        <label class="volume-label" for="volume-slider">背景音乐音量</label>
+                        <input type="range" id="volume-slider" min="0" max="100" value="25" class="volume-slider">
+                    </div>
+                </div>
+                <div class="settings-buttons">
+                    <button type="submit" id="btn-save-settings" class="btn-save">保存</button>
+                </div>
+                <div class="settings-reset">
+                    <button type="button" id="btn-reset-stats" class="btn-reset-stats">重置数据</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <audio id="sound-bell" preload="auto"></audio>
-    <audio id="background-music" loop preload="metadata">
+    <audio id="background-music" loop preload="none">
     </audio>
 
     <script>
@@ -738,19 +847,17 @@
             const pomodoroCountDisplay = document.getElementById('pomodoro-count');
             const cycleCountDisplay = document.getElementById('cycle-count');
             const totalPomodoroCountDisplay = document.getElementById('total-pomodoro-count');
-            const testSoundButton = document.getElementById('btn-test-sound');
-            const soundStatus = document.getElementById('sound-status');
             const themeToggle = document.getElementById('theme-toggle');
             const themeIcon = document.getElementById('theme-icon');
             const settingsToggle = document.getElementById('settings-toggle');
             const settingsPanel = document.querySelector('.settings');
             const settingsOverlay = document.querySelector('.settings-overlay');
+            const settingsForm = document.getElementById('settings-form');
             const cancelSettingsButton = document.getElementById('btn-cancel-settings');
             const workTimeInput = document.getElementById('work-time');
             const shortBreakInput = document.getElementById('short-break');
             const longBreakInput = document.getElementById('long-break');
             const pomodorosPerCycleInput = document.getElementById('pomodoros-per-cycle');
-            const saveSettingsButton = document.getElementById('btn-save-settings');
             const backgroundMusic = document.getElementById('background-music');
             const musicPlayPause = document.getElementById('music-play-pause');
             const volumeSlider = document.getElementById('volume-slider');
@@ -760,6 +867,11 @@
             let stats = loadStats();
             let isRunning = false;
             let isWorking = true;
+            let isSettingsOpen = false;
+            let previouslyFocusedElement = null;
+            let settingsCloseTimer = null;
+            let musicWasStarted = false;
+            let backgroundMusicCachePromise = null;
             const audioCacheConfig = {
                 database: 'pomodoro-audio-cache',
                 store: 'audio',
@@ -808,7 +920,15 @@
                     const resetStats = { completedPomodoros: 0, completedCycles: 0, totalCompletedPomodoros: 0 };
                     saveStats(resetStats);
                     stats = resetStats;
+                } else if (type === 'saveResetTimestamp') {
+                    localStorage.setItem('pomodoroResetTimestamp', e.data.timestamp || new Date().toISOString());
                 }
+            };
+
+            worker.onerror = function (event) {
+                console.error('计时器后台线程出错：', event.message);
+                statusText.className = 'status working';
+                statusText.textContent = '计时器加载失败，请刷新重试';
             };
 
             function debounce(func, wait) {
@@ -834,19 +954,19 @@
                 progressBar.style.strokeDashoffset = dashOffset;
 
                 if (isWorking) {
-                    body.className = 'working';
-                    if (!isRunning) body.classList.add('paused');
-                    else body.classList.remove('paused');
+                    body.classList.remove('rest', 'long-rest');
+                    body.classList.add('working');
+                    body.classList.toggle('paused', !isRunning);
                     statusText.className = 'status working';
                     statusText.textContent = '专注工作中';
                 } else if (isLongBreak) {
-                    body.className = 'long-rest';
-                    body.classList.remove('paused');
+                    body.classList.remove('working', 'rest', 'paused');
+                    body.classList.add('long-rest');
                     statusText.className = 'status long-rest';
                     statusText.textContent = '长休息中';
                 } else {
-                    body.className = 'rest';
-                    body.classList.remove('paused');
+                    body.classList.remove('working', 'long-rest', 'paused');
+                    body.classList.add('rest');
                     statusText.className = 'status rest';
                     statusText.textContent = '休息中';
                 }
@@ -872,18 +992,16 @@
                 bell.onended = resumeBackgroundMusic;
                 bell.play().then(() => {
                     console.log(`${soundFile} 播放成功`);
-                    if (Notification.permission === "granted") {
+                    if ('Notification' in window && Notification.permission === "granted") {
                         new Notification("番茄时钟提醒", {
                             body: wasWorking ? "工作时间结束！请开始休息。" : "休息时间结束！请开始工作。",
-                            icon: "icon.png",
                             requireInteraction: true
                         });
-                    } else if (Notification.permission !== "denied") {
+                    } else if ('Notification' in window && Notification.permission !== "denied") {
                         Notification.requestPermission().then(permission => {
                             if (permission === "granted") {
                                 new Notification("番茄时钟提醒", {
                                     body: wasWorking ? "工作时间结束！请开始休息。" : "休息时间结束！请开始工作。",
-                                    icon: "icon.png",
                                     requireInteraction: true
                                 });
                             }
@@ -891,8 +1009,6 @@
                     }
                 }).catch(e => {
                     console.error('铃声播放失败:', e);
-                    soundStatus.textContent = "铃声播放失败";
-                    soundStatus.className = "sound-status error";
                     resumeBackgroundMusic();
                 });
             }
@@ -907,55 +1023,99 @@
 
             function saveSettings() {
                 const newSettings = {
-                    workTime: parseInt(workTimeInput.value),
-                    shortBreak: parseInt(shortBreakInput.value),
-                    longBreak: parseInt(longBreakInput.value),
-                    pomodorosPerCycle: parseInt(pomodorosPerCycleInput.value)
+                    workTime: Number(workTimeInput.value),
+                    shortBreak: Number(shortBreakInput.value),
+                    longBreak: Number(longBreakInput.value),
+                    pomodorosPerCycle: Number(pomodorosPerCycleInput.value)
                 };
 
-                if (newSettings.workTime < 1 || newSettings.workTime > 180 ||
-                    newSettings.shortBreak < 1 || newSettings.shortBreak > 60 ||
-                    newSettings.longBreak < 1 || newSettings.longBreak > 60 ||
-                    newSettings.pomodorosPerCycle < 1 || newSettings.pomodorosPerCycle > 10) {
+                if (!isIntegerInRange(newSettings.workTime, 1, 180) ||
+                    !isIntegerInRange(newSettings.shortBreak, 1, 60) ||
+                    !isIntegerInRange(newSettings.longBreak, 1, 60) ||
+                    !isIntegerInRange(newSettings.pomodorosPerCycle, 1, 10)) {
                     alert("请输入有效的设置值！");
                     return;
                 }
 
-                localStorage.setItem('pomodoroSettings', JSON.stringify(newSettings));
+                try {
+                    localStorage.setItem('pomodoroSettings', JSON.stringify(newSettings));
+                } catch (error) {
+                    console.warn('设置保存失败，将仅在本次使用中生效：', error);
+                }
                 settings = newSettings;
                 worker.postMessage({ type: 'updateSettings', data: newSettings });
                 closeSettings();
             }
 
             function openSettings() {
+                if (isSettingsOpen) return;
+                isSettingsOpen = true;
+                clearTimeout(settingsCloseTimer);
+                previouslyFocusedElement = document.activeElement;
                 document.body.classList.add('no-scroll');
+                fillSettingsInputs();
                 settingsOverlay.style.display = 'block';
                 settingsPanel.style.display = 'flex';
-                setTimeout(() => {
+                settingsOverlay.setAttribute('aria-hidden', 'false');
+                settingsPanel.setAttribute('aria-hidden', 'false');
+                requestAnimationFrame(() => {
+                    if (!isSettingsOpen) return;
                     settingsOverlay.classList.add('visible');
                     settingsPanel.classList.add('visible');
-                }, 10);
+                    settingsPanel.focus({ preventScroll: true });
+                });
             }
 
             function closeSettings() {
+                if (!isSettingsOpen) return;
+                isSettingsOpen = false;
                 document.body.classList.remove('no-scroll');
                 settingsPanel.classList.remove('visible');
                 settingsOverlay.classList.remove('visible');
-                setTimeout(() => {
+                settingsPanel.setAttribute('aria-hidden', 'true');
+                settingsOverlay.setAttribute('aria-hidden', 'true');
+                clearTimeout(settingsCloseTimer);
+                settingsCloseTimer = setTimeout(() => {
                     settingsPanel.style.display = 'none';
                     settingsOverlay.style.display = 'none';
                 }, 300);
+                if (previouslyFocusedElement instanceof HTMLElement) {
+                    previouslyFocusedElement.focus({ preventScroll: true });
+                }
+            }
+
+            function readJsonStorage(key, fallback) {
+                try {
+                    const rawValue = localStorage.getItem(key);
+                    return rawValue ? JSON.parse(rawValue) : fallback;
+                } catch (error) {
+                    console.warn(`读取本地数据失败：${key}`, error);
+                    return fallback;
+                }
+            }
+
+            function isIntegerInRange(value, min, max) {
+                return Number.isInteger(value) && value >= min && value <= max;
+            }
+
+            function normalizeSettings(value) {
+                const defaults = { workTime: 50, shortBreak: 10, longBreak: 30, pomodorosPerCycle: 4 };
+                const source = value && typeof value === 'object' ? value : {};
+                return {
+                    workTime: isIntegerInRange(source.workTime, 1, 180) ? source.workTime : defaults.workTime,
+                    shortBreak: isIntegerInRange(source.shortBreak, 1, 60) ? source.shortBreak : defaults.shortBreak,
+                    longBreak: isIntegerInRange(source.longBreak, 1, 60) ? source.longBreak : defaults.longBreak,
+                    pomodorosPerCycle: isIntegerInRange(source.pomodorosPerCycle, 1, 10) ? source.pomodorosPerCycle : defaults.pomodorosPerCycle
+                };
             }
 
             function loadSettings() {
-                const defaultSettings = { workTime: 50, shortBreak: 10, longBreak: 30, pomodorosPerCycle: 4 };
-                const savedSettings = localStorage.getItem('pomodoroSettings');
-                return savedSettings ? JSON.parse(savedSettings) : defaultSettings;
+                return normalizeSettings(readJsonStorage('pomodoroSettings', null));
             }
 
             function loadStats() {
                 const defaultStats = { completedPomodoros: 0, completedCycles: 0, totalCompletedPomodoros: 0 };
-                const savedStats = localStorage.getItem('pomodoroStats');
+                const savedStats = readJsonStorage('pomodoroStats', null);
                 const savedTimestamp = localStorage.getItem('pomodoroResetTimestamp');
 
                 // 如果没有保存的数据，直接返回默认值并创建时间戳
@@ -984,22 +1144,20 @@
                 }
 
                 // 不需要重置，返回保存的数据
-                return JSON.parse(savedStats);
+                return {
+                    completedPomodoros: Number.isInteger(savedStats.completedPomodoros) && savedStats.completedPomodoros >= 0 ? savedStats.completedPomodoros : 0,
+                    completedCycles: Number.isInteger(savedStats.completedCycles) && savedStats.completedCycles >= 0 ? savedStats.completedCycles : 0,
+                    totalCompletedPomodoros: Number.isInteger(savedStats.totalCompletedPomodoros) && savedStats.totalCompletedPomodoros >= 0 ? savedStats.totalCompletedPomodoros : 0
+                };
             }
 
-            function saveStats(stats) {
-                localStorage.setItem('pomodoroStats', JSON.stringify(stats));
+            function saveStats(statsToSave) {
+                try {
+                    localStorage.setItem('pomodoroStats', JSON.stringify(statsToSave));
+                } catch (error) {
+                    console.warn('统计数据保存失败：', error);
+                }
             }
-
-            testSoundButton.addEventListener('click', debounce(() => {
-                playSound(true);
-                soundStatus.textContent = "铃声测试成功";
-                soundStatus.className = "sound-status success";
-                setTimeout(() => {
-                    soundStatus.textContent = "";
-                    soundStatus.className = "sound-status";
-                }, 2000);
-            }, 100));
 
             themeToggle.addEventListener('click', () => {
                 const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -1021,7 +1179,36 @@
                 }
             });
 
-            saveSettingsButton.addEventListener('click', saveSettings);
+            settingsForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                saveSettings();
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (!isSettingsOpen) return;
+
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closeSettings();
+                    return;
+                }
+
+                if (event.key !== 'Tab') return;
+                const focusableElements = Array.from(settingsPanel.querySelectorAll(
+                    'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )).filter((element) => element.offsetParent !== null);
+                if (!focusableElements.length) return;
+
+                const firstElement = focusableElements[0];
+                const lastElement = focusableElements[focusableElements.length - 1];
+                if (event.shiftKey && document.activeElement === firstElement) {
+                    event.preventDefault();
+                    lastElement.focus();
+                } else if (!event.shiftKey && document.activeElement === lastElement) {
+                    event.preventDefault();
+                    firstElement.focus();
+                }
+            });
 
             resetStatsButton.addEventListener('click', () => {
                 if (confirm('确定要重置数据吗？此操作不可撤销。')) {
@@ -1037,16 +1224,27 @@
                 themeIcon.innerHTML = '<path d="M6 .278a.768.768 0 0 1 .08.858 7.208 7.208 0 0 0-.878 3.46c0 4.021 3.278 7.277 7.318 7.318.527 0 1.04-.055 1.533-.16a.787.787 0 0 1 .81.316.733.733 0 0 1-.031.893A8.349 8.349 0 0 1 8.344 16C3.734 16 0 12.286 0 7.71 0 4.266 2.114 1.312 5.124.06A.752.752 0 0 1 6 .278z"/>';
             }
 
-            workTimeInput.value = settings.workTime;
-            shortBreakInput.value = settings.shortBreak;
-            longBreakInput.value = settings.longBreak;
-            pomodorosPerCycleInput.value = settings.pomodorosPerCycle;
+            function fillSettingsInputs() {
+                workTimeInput.value = settings.workTime;
+                shortBreakInput.value = settings.shortBreak;
+                longBreakInput.value = settings.longBreak;
+                pomodorosPerCycleInput.value = settings.pomodorosPerCycle;
+            }
+
+            fillSettingsInputs();
 
             updateDisplay(settings.workTime * 60, false, true, false, stats.completedPomodoros, stats.completedCycles, stats.totalCompletedPomodoros);
 
             musicPlayPause.addEventListener('click', () => {
                 if (backgroundMusic.paused) {
-                    backgroundMusic.play().then(() => musicPlayPause.classList.add('playing')).catch(err => console.error('播放背景音乐失败:', err));
+                    musicWasStarted = true;
+                    if (!backgroundMusic.getAttribute('src')) {
+                        setBackgroundMusicSource(audioCacheConfig.backgroundMusicUrl);
+                    }
+                    backgroundMusic.play().then(() => {
+                        musicPlayPause.classList.add('playing');
+                        cacheBackgroundMusic();
+                    }).catch(err => console.error('播放背景音乐失败:', err));
                 } else {
                     backgroundMusic.pause();
                     musicPlayPause.classList.remove('playing');
@@ -1061,8 +1259,10 @@
             function loadMusicSettings() {
                 const savedVolume = localStorage.getItem('backgroundMusicVolume');
                 if (savedVolume !== null) {
-                    volumeSlider.value = savedVolume;
-                    backgroundMusic.volume = savedVolume / 100;
+                    const volume = Math.min(100, Math.max(0, Number(savedVolume)));
+                    const safeVolume = Number.isFinite(volume) ? volume : 25;
+                    volumeSlider.value = safeVolume;
+                    backgroundMusic.volume = safeVolume / 100;
                 } else {
                     backgroundMusic.volume = 0.25;
                     volumeSlider.value = 25;
@@ -1126,34 +1326,44 @@
                 backgroundMusic.load();
             }
 
+            function cacheBackgroundMusic() {
+                if (backgroundMusic.dataset.audioCached === 'true' || backgroundMusicCachePromise) {
+                    return backgroundMusicCachePromise;
+                }
+
+                backgroundMusicCachePromise = fetch(audioCacheConfig.backgroundMusicUrl, { cache: 'force-cache' })
+                    .then((response) => {
+                        if (!response.ok && response.status !== 0) {
+                            throw new Error(`背景音乐请求失败：${response.status}`);
+                        }
+                        return response.blob();
+                    })
+                    .then((blob) => {
+                        if (!blob.size) {
+                            throw new Error('背景音乐文件为空');
+                        }
+                        return writeCachedAudio(audioCacheConfig.backgroundMusicKey, blob);
+                    })
+                    .then(() => {
+                        backgroundMusic.dataset.audioCached = 'true';
+                    })
+                    .catch((error) => {
+                        backgroundMusicCachePromise = null;
+                        console.warn('背景音乐本地缓存失败，将继续使用浏览器缓存：', error);
+                    });
+
+                return backgroundMusicCachePromise;
+            }
+
             async function loadBackgroundMusic() {
                 try {
                     const cachedBlob = await readCachedAudio(audioCacheConfig.backgroundMusicKey);
-                    if (cachedBlob && cachedBlob.size > 0) {
+                    if (cachedBlob && cachedBlob.size > 0 && !musicWasStarted && backgroundMusic.paused) {
                         setBackgroundMusicSource(cachedBlob);
-                        return;
+                        backgroundMusic.dataset.audioCached = 'true';
                     }
                 } catch (error) {
                     console.warn('读取背景音乐本地缓存失败：', error);
-                }
-
-                // 首次访问先直接播放，避免等待完整文件缓存完成。
-                setBackgroundMusicSource(audioCacheConfig.backgroundMusicUrl);
-
-                try {
-                    const response = await fetch(audioCacheConfig.backgroundMusicUrl, { cache: 'force-cache' });
-                    if (!response.ok && response.status !== 0) {
-                        throw new Error(`背景音乐请求失败：${response.status}`);
-                    }
-
-                    const blob = await response.blob();
-                    if (!blob.size) {
-                        throw new Error('背景音乐文件为空');
-                    }
-
-                    await writeCachedAudio(audioCacheConfig.backgroundMusicKey, blob);
-                } catch (error) {
-                    console.warn('背景音乐本地缓存失败，将继续使用浏览器缓存：', error);
                 }
             }
 
@@ -1167,7 +1377,6 @@
             });
         });
     </script>
-    <script>(function () { function c() { var b = a.contentDocument || a.contentWindow.document; if (b) { var d = b.createElement('script'); d.innerHTML = "window.__CF$cv$params={r:'936c6cc8b9b5e58e',t:'MTc0NTczNzAzOC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);"; b.getElementsByTagName('head')[0].appendChild(d) } } if (document.body) { var a = document.createElement('iframe'); a.height = 1; a.width = 1; a.style.position = 'absolute'; a.style.top = 0; a.style.left = 0; a.style.border = 'none'; a.style.visibility = 'hidden'; document.body.appendChild(a); if ('loading' !== document.readyState) c(); else if (window.addEventListener) document.addEventListener('DOMContentLoaded', c); else { var e = document.onreadystatechange || function () { }; document.onreadystatechange = function (b) { e(b); 'loading' !== document.readyState && (document.onreadystatechange = e, c()) } } } })();</script>
 </body>
 
 </html>
